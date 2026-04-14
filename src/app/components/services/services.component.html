@@ -1,0 +1,21 @@
+<section class="services py-24 px-6 lg:px-20 bg-navy relative z-10" #servicesSection>
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16" *ngIf="isVisible" @fadeInUp>
+      <h2 class="font-display text-4xl lg:text-5xl font-bold text-white mb-4">What We Create</h2>
+      <div class="w-24 h-1 bg-primary mx-auto rounded-full"></div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8" *ngIf="isVisible" @staggerCards>
+      <div *ngFor="let service of services; let i = index" 
+           class="service-card glass-panel p-8 rounded-2xl border border-primary/30 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+           (mouseenter)="onCardHover($event)">
+        <!-- Hover background glow -->
+        <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300"></div>
+        
+        <div class="text-5xl mb-6">{{ service.icon }}</div>
+        <h3 class="font-display text-2xl font-semibold text-white mb-4 group-hover:text-primary transition-colors duration-300">{{ service.title }}</h3>
+        <p class="font-body text-gray leading-relaxed z-10">{{ service.description }}</p>
+      </div>
+    </div>
+  </div>
+</section>

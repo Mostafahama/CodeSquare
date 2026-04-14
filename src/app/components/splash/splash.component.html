@@ -1,0 +1,62 @@
+<!-- PREMIUM SPLASH SCREEN: Layout Corrected (Branding Top-Left, Button Bottom-Center) -->
+<div class="splash-wrapper" #splashWrapper [class.exit]="isExiting">
+
+  <!-- LAYER 1: 3D Canvas (Full viewport) -->
+  <div class="spline-embed">
+    <canvas id="splashCanvas" #splashCanvas></canvas>
+  </div>
+
+  <!-- LAYER 2: Ambient Glow (Full viewport) -->
+  <div class="ambient-glow"></div>
+
+  <!-- LAYER 3: Particles (Full viewport) -->
+  <div class="particle-field">
+    <div *ngFor="let p of particles" 
+         class="particle"
+         [style.left.%]="p.x"
+         [style.top.%]="p.y"
+         [style.width.px]="p.size"
+         [style.height.px]="p.size"
+         [style.animation-delay.s]="p.delay"
+         [style.animation-duration.s]="p.duration"
+         [style.--particle-opacity]="p.opacity">
+    </div>
+  </div>
+
+  <!-- LAYER 4: UI Overlay (Fixed) -->
+  <div class="splash-ui">
+    
+    <!-- Branding Section (Top-Left) -->
+    <div class="splash-branding" [class.visible]="brandingVisible">
+      <div class="brand-logo">CS.</div>
+      <h1 class="brand-title">Code Square</h1>
+      <p class="brand-tagline">Engineering Effortless Digital Experiences</p>
+    </div>
+
+    <!-- Center spacer for layout -->
+    <div class="spacer"></div>
+
+    <!-- Action Section (Bottom-Center) -->
+    <div class="button-container">
+      <button class="enter-button" 
+              [class.visible]="buttonVisible" 
+              (click)="onEnterClick()" 
+              [disabled]="isExiting"
+              type="button">
+        <span class="btn-text">Explore</span>
+        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+      <p class="skip-hint" [class.visible]="buttonVisible">
+        Press <kbd>Space</kbd> to enter
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Atmospheric Elements -->
+  <div class="bottom-vignette"></div>
+  <div class="top-vignette"></div>
+</div>
