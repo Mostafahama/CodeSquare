@@ -5,9 +5,9 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      'readex': ['Readex Pro', 'sans-serif'],
-      'grotesk': ['Space Grotesk', 'sans-serif'],
-      'inter': ['Inter', 'sans-serif'],
+      'readex': ['Readex Pro', 'IBM Plex Sans Arabic', 'sans-serif'],
+      'grotesk': ['Space Grotesk', 'IBM Plex Sans Arabic', 'sans-serif'],
+      'inter': ['Inter', 'Alexandria', 'sans-serif'],
     },
     extend: {
       colors: {

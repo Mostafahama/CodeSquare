@@ -1,15 +1,17 @@
 /**
- * ✅ PREMIUM SPLASH STYLES - LAYOUT CORRECTED
- * Proper positioning: Branding top-left, Robot center, Button bottom-center
+ * ✅ PREMIUM SPLASH STYLES - SPLINE 3D POWERED
+ * Font: Readex Pro (matching hero section)
+ * Button: Split-button with purple neon gradient
  */
 
 // ===== COLOR SYSTEM =====
 $bg-dark: #0a0a0a;
 $bg-dark-purple: #1a0033;
-$neon-purple: #7c3aed;
+$neon-purple: #A855F7;
+$neon-purple-deep: #7c3aed;
 $neon-pink: #ec4899;
-$neon-red: #dc2626;
-$text-primary: #f5f5f0;
+$neon-violet: #8B5CF6;
+$text-primary: #F8FAFC;
 $text-secondary: #cbd5e1;
 $text-muted: rgba(255, 255, 255, 0.4);
 
@@ -25,7 +27,6 @@ $text-muted: rgba(255, 255, 255, 0.4);
   overflow: hidden;
   z-index: 9999;
   
-  // Custom properties for mouse track
   --mouse-x: 50%;
   --mouse-y: 50%;
   
@@ -41,7 +42,7 @@ $text-muted: rgba(255, 255, 255, 0.4);
   }
 }
 
-// ===== CANVAS LAYER =====
+// ===== SPLINE CANVAS LAYER =====
 .spline-embed {
   position: absolute;
   width: 100%;
@@ -49,6 +50,12 @@ $text-muted: rgba(255, 255, 255, 0.4);
   top: 0;
   left: 0;
   z-index: 1;
+  opacity: 0;
+  transition: opacity 1.2s ease-out;
+
+  &.loaded {
+    opacity: 1;
+  }
 
   canvas {
     width: 100% !important;
@@ -56,6 +63,69 @@ $text-muted: rgba(255, 255, 255, 0.4);
     display: block;
     outline: none;
   }
+}
+
+// ===== LOADING OVERLAY =====
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  pointer-events: none;
+}
+
+.loader-ring {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  animation: loaderSpin 1.6s linear infinite;
+
+  .ring-segment {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+
+    &:nth-child(1) {
+      border-top-color: #{$neon-purple};
+      animation: loaderSpin 1.2s ease-in-out infinite;
+    }
+    &:nth-child(2) {
+      border-right-color: #{$neon-pink};
+      animation: loaderSpin 1.6s ease-in-out infinite reverse;
+    }
+    &:nth-child(3) {
+      border-bottom-color: rgba(255, 255, 255, 0.2);
+      animation: loaderSpin 2s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes loaderSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #{$text-muted};
+  animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 // ===== GLOW LAYER =====
@@ -68,7 +138,7 @@ $text-muted: rgba(255, 255, 255, 0.4);
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle 600px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(236, 72, 153, 0.25) 0%,
+    rgba(168, 85, 247, 0.25) 0%,
     rgba(124, 58, 237, 0.15) 35%,
     transparent 85%
   );
@@ -95,9 +165,9 @@ $text-muted: rgba(255, 255, 255, 0.4);
 
   .particle {
     position: absolute;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(236, 72, 153, 0.4));
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(168, 85, 247, 0.4));
     border-radius: 50%;
-    box-shadow: 0 0 10px rgba(236, 72, 153, 0.6), 0 0 20px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.6), 0 0 20px rgba(124, 58, 237, 0.3);
     animation: floatParticle infinite ease-in-out;
   }
 }
@@ -121,11 +191,11 @@ $text-muted: rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start; // ✅ Ensure children align left by default on desktop
+  align-items: flex-start;
   padding: 60px 60px 60px 60px;
 }
 
-// ===== BRANDING (Top-Left) =====
+// ===== BRANDING (Top-Left) — Readex Pro matching Hero =====
 .splash-branding {
   text-align: left;
   align-self: flex-start;
@@ -134,24 +204,19 @@ $text-muted: rgba(255, 255, 255, 0.4);
   max-width: 550px;
   
   opacity: 0;
-  animation: slideInBranding 1s ease-out 0.3s forwards;
-}
+  transform: translateX(-50px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
 
-@keyframes slideInBranding {
-  from {
-    opacity: 0;
-    transform: translateX(-50px);
-  }
-  to {
+  &.visible {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
 .brand-logo {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Readex Pro', sans-serif;
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.2em;
   margin-bottom: 8px;
   color: #{$text-primary};
@@ -159,23 +224,19 @@ $text-muted: rgba(255, 255, 255, 0.4);
   opacity: 0.85;
 }
 
+// ✅ Same font as hero typing: Readex Pro, same color #F8FAFC
 .brand-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Readex Pro', sans-serif;
   font-size: clamp(2.8rem, 5vw, 4rem);
-  font-weight: 700;
+  font-weight: 200;
   margin: 0 0 12px 0;
   line-height: 1.1;
-  background: linear-gradient(90deg, #{$text-primary} 0%, #d4af37 50%, #{$text-primary} 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  background-size: 200% auto;
-  animation: shineText 4s linear infinite;
-}
-
-@keyframes shineText {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  letter-spacing: -0.03em;
+  color: #{$text-primary};
+  text-shadow: 
+    0 0 15px rgba(168, 85, 247, 0.6),
+    0 0 30px rgba(168, 85, 247, 0.4),
+    0 0 60px rgba(168, 85, 247, 0.2);
 }
 
 .brand-tagline {
@@ -200,61 +261,154 @@ $text-muted: rgba(255, 255, 255, 0.4);
   margin-bottom: 20px;
 }
 
-// ===== BUTTON =====
-.enter-button {
+// ===== 🔥 ARROW BUTTON — Arrow reveals on hover =====
+.arrow-button {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 40px;
+  padding: 0;
+  position: relative;
   
-  background: rgba(3, 3, 3, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid transparent;
-  border-image: linear-gradient(90deg, #{$neon-purple}, #{$neon-pink}, #{$neon-red}) 1;
-  border-radius: 8px;
-  
-  color: #{$text-primary};
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  // Gradient border
+  background: linear-gradient(135deg, #{$neon-purple-deep}, #{$neon-purple}, #{$neon-pink}, #{$neon-violet});
+  background-size: 300% 300%;
+  animation: gradientShift 4s ease-in-out infinite;
+  border: none;
+  border-radius: 50px;
   cursor: pointer;
+  overflow: hidden;
   
   opacity: 0;
-  animation: slideUpButton 0.8s ease-out 0.6s forwards;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out, 
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.4s ease;
 
-  .btn-icon {
-    color: #{$neon-pink};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.3s ease;
-  }
-  
-  &:hover {
-    background: rgba(236, 72, 153, 0.12);
-    box-shadow: 0 0 25px rgba(236, 72, 153, 0.5),
-                0 0 50px rgba(124, 58, 237, 0.25),
-                inset 0 0 20px rgba(124, 58, 237, 0.15);
-    transform: translateY(-4px);
-
-    .btn-icon {
-      transform: translateX(4px);
-    }
-  }
-}
-
-@keyframes slideUpButton {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
+  &.visible {
     opacity: 1;
     transform: translateY(0);
   }
+
+  // Inner dark background (2px inset from gradient border)
+  &::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: rgba(10, 5, 20, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 50px;
+    z-index: 0;
+    transition: background 0.4s ease;
+  }
+
+  .btn-text {
+    position: relative;
+    z-index: 1;
+    padding: 16px 36px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #{$text-primary};
+    transition: padding-right 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                text-shadow 0.3s ease;
+  }
+
+  // Arrow — hidden by default, slides in on hover
+  .btn-arrow {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    color: #{$neon-pink};
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.3s ease 0.1s,
+                padding 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0;
+
+    svg {
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+  }
+
+  // Glow underline
+  .btn-glow {
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: linear-gradient(
+      90deg, 
+      transparent, 
+      #{$neon-purple}, 
+      #{$neon-pink},
+      #{$neon-purple},
+      transparent
+    );
+    filter: blur(3px);
+    opacity: 0.4;
+    z-index: 1;
+    transition: opacity 0.3s ease;
+  }
+
+  // ===== HOVER: Reveal the arrow =====
+  &:hover {
+    box-shadow: 
+      0 0 30px rgba(168, 85, 247, 0.6),
+      0 0 60px rgba(124, 58, 237, 0.3),
+      0 0 100px rgba(168, 85, 247, 0.15);
+    transform: translateY(-4px);
+    filter: brightness(1.1);
+
+    &::before {
+      background: rgba(168, 85, 247, 0.1);
+    }
+
+    .btn-text {
+      padding-right: 12px;
+      text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+    }
+
+    .btn-arrow {
+      width: 44px;
+      opacity: 1;
+      padding-right: 16px;
+    }
+
+    .btn-glow {
+      opacity: 1;
+      filter: blur(5px);
+    }
+  }
+
+  // ===== ACTIVE/PRESS =====
+  &:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 
+      0 0 15px rgba(168, 85, 247, 0.5),
+      0 0 30px rgba(124, 58, 237, 0.2);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 // ===== SKIP HINT =====
@@ -264,22 +418,22 @@ $text-muted: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   opacity: 0;
-  animation: fadeInHint 1s ease-out 1.2s forwards;
+  transition: opacity 1s ease-out 0.3s;
   color: #{$text-muted};
   margin: 0;
+
+  &.visible {
+    opacity: 1;
+  }
   
   kbd {
     background: rgba(255, 255, 255, 0.08);
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(236, 72, 153, 0.3);
-    color: #{$neon-pink};
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    color: #{$neon-purple};
     font-weight: 600;
   }
-}
-
-@keyframes fadeInHint {
-  to { opacity: 1; }
 }
 
 // ===== VIGNETTES =====
@@ -328,8 +482,28 @@ $text-muted: rgba(255, 255, 255, 0.4);
   .brand-title {
     font-size: 2.2rem;
   }
+
+  .brand-tagline {
+    font-size: 0.7rem;
+  }
   
   .skip-hint {
     display: none;
+  }
+
+  .arrow-button {
+    .btn-text {
+      padding: 14px 28px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 1.8rem;
+  }
+  .brand-logo {
+    font-size: 1rem;
   }
 }

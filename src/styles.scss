@@ -1,5 +1,5 @@
 /* ===== GOOGLE FONTS IMPORT ===== */
-@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@200;300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@200..700&family=Space+Grotesk:wght@500..700&family=Inter:wght@300..600&family=Cormorant+Garamond:wght@300..700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Alexandria:wght@300..700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -49,6 +49,16 @@ body {
   background-color: #030303;
   color: var(--text-primary);
   overflow-x: hidden;
+}
+
+/* RTL Typography Normalization */
+[dir="rtl"] {
+  line-height: var(--lh-relaxed);
+  letter-spacing: 0; // Fixes broken cursives in Arabic.
+  
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: 0;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {

@@ -1,8 +1,9 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, QueryList, ViewChildren, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, QueryList, ViewChildren, ViewEncapsulation, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { WritingTextComponent } from '../shared/writing-text.component';
+import { TranslationService } from '../../services/translation.service';
 
 interface Project {
   number: string;
@@ -21,13 +22,13 @@ interface Project {
   encapsulation: ViewEncapsulation.None,
   imports: [CommonModule, WritingTextComponent],
   template: `
-    <section id="projects-section" class="projects-section" #projectsSection>
+    <section id="projects-section" class="projects-section" #projectsSection [attr.dir]="translationService.currentDir()">
 
       <!-- Section Header -->
       <div class="section-header" #sectionHeader>
-        <h2 class="section-title">Our Work</h2>
+        <h2 class="section-title">{{ translations().title }}</h2>
         <p class="section-subtitle">
-          <app-writing-text [text]="subtitleText" [delay]="200"></app-writing-text>
+          <app-writing-text [text]="translations().subtitle" [delay]="200"></app-writing-text>
         </p>
         <div class="decorative-line" #decorLine></div>
       </div>
@@ -35,7 +36,7 @@ interface Project {
       <!-- Stacked Panels Container -->
       <div class="stack-container" #stackContainer>
         <div
-          *ngFor="let project of projects; let i = index; let last = last"
+          *ngFor="let project of projects(); let i = index; let last = last"
           class="project-panel"
           [style.--panel-gradient]="project.gradient"
           [attr.data-index]="i"
@@ -63,8 +64,8 @@ interface Project {
               </div>
 
               <button class="panel-cta" [attr.aria-label]="'View case study for ' + project.title">
-                <span>View Case Study</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <span>{{ (translationService.currentLang() === 'ar') ? 'عرض دراسة الحالة' : 'View Case Study' }}</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="rtl:rotate-180">
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
               </button>
@@ -94,7 +95,7 @@ interface Project {
     /* ══════════════════════════════════════════════════ */
     .section-header {
       text-align: center;
-      margin-bottom: 80px;
+      margin-bottom: 40px;
       padding: 0 40px;
     }
     .section-title {
@@ -193,6 +194,10 @@ interface Project {
       position: relative;
       background: rgba(0, 0, 0, 0.2);
     }
+    .rtl .panel-counter {
+      border-right: none;
+      border-left: 1px solid rgba(168, 85, 247, 0.1);
+    }
     .panel-counter::after {
       content: '';
       position: absolute;
@@ -201,6 +206,10 @@ interface Project {
       right: -1px;
       width: 1px;
       background: linear-gradient(180deg, transparent, rgba(168, 85, 247, 0.3), transparent);
+    }
+    .rtl .panel-counter::after {
+      right: auto;
+      left: -1px;
     }
 
     .counter-num {
@@ -252,6 +261,7 @@ interface Project {
       letter-spacing: 0.05em;
       padding: 5px 14px;
       border-radius: 6px;
+      white-space: nowrap;
     }
     .status-live {
       background: rgba(34, 197, 94, 0.12);
@@ -351,6 +361,12 @@ interface Project {
     .panel-cta:hover svg {
       transform: translateX(4px);
     }
+    .rtl .panel-cta:hover {
+      transform: translateX(-4px);
+    }
+    .rtl .panel-cta:hover svg {
+      transform: translateX(-4px) rotate(180deg);
+    }
 
     /* ══════════════════════════════════════════════════ */
     /*  Responsive                                        */
@@ -385,6 +401,9 @@ interface Project {
         justify-content: flex-start;
         align-items: baseline;
       }
+      .rtl .panel-counter {
+        border-left: none;
+      }
       .panel-counter::after { display: none; }
       .counter-num { font-size: 48px; }
       .counter-total { margin-top: 0; }
@@ -414,154 +433,110 @@ export class ProjectsComponent implements AfterViewInit, OnDestroy {
   @ViewChild('stackContainer') stackContainer!: ElementRef;
   @ViewChildren('projectPanel') projectPanels!: QueryList<ElementRef>;
 
-  subtitleText = 'Projects that redefine industries';
+  public translationService = inject(TranslationService);
+  translations = this.translationService.getTranslations('projects');
+
   totalStr = '06';
 
   private scrollTriggers: ScrollTrigger[] = [];
   private headerObserver: IntersectionObserver | null = null;
   private headerAnimated = false;
 
-  projects: Project[] = [
-    {
-      number: '01',
-      title: 'M Tech Square Website',
-      status: 'In Progress',
-      statusClass: 'status-progress',
-      type: 'Internal Project',
-      description: 'Corporate website showcasing M Tech Square Group\'s technology ecosystem and services portfolio with cinematic animations and premium design.',
-      techStack: ['Angular', 'GSAP', 'Tailwind CSS', 'Canvas API'],
-      gradient: 'linear-gradient(135deg, rgba(14, 14, 38, 0.95) 0%, rgba(8, 8, 24, 0.98) 100%)'
-    },
-    {
-      number: '02',
-      title: 'Techno Square Platform',
-      status: 'Updating',
-      statusClass: 'status-updating',
-      type: 'Internal Product',
-      description: 'Educational platform with integrated mobile app for Techno Square\'s online learning programs. Full-stack solution with real-time collaboration features.',
-      techStack: ['Angular', 'Flutter', 'Node.js', 'PostgreSQL'],
-      gradient: 'linear-gradient(135deg, rgba(16, 12, 34, 0.95) 0%, rgba(10, 8, 26, 0.98) 100%)'
-    },
-    {
-      number: '03',
-      title: 'Dr. X Series',
-      status: 'Idea',
-      statusClass: 'status-idea',
-      type: 'SaaS Product',
-      description: 'Health management SaaS platform for patient records, appointments, and medical data analytics with AI-powered diagnostic insights.',
-      techStack: ['Next.js', 'MongoDB', 'Stripe', 'Cloud Functions'],
-      gradient: 'linear-gradient(135deg, rgba(10, 14, 30, 0.95) 0%, rgba(6, 8, 22, 0.98) 100%)'
-    },
-    {
-      number: '04',
-      title: 'El Shoush Travel System',
-      status: 'In Progress',
-      statusClass: 'status-progress',
-      type: 'B2B System',
-      description: 'Comprehensive travel booking and management system for travel agencies with multi-language support and integrated Maps functionality.',
-      techStack: ['Angular', 'Express.js', 'PostgreSQL', 'Maps API'],
-      gradient: 'linear-gradient(135deg, rgba(14, 10, 32, 0.95) 0%, rgba(8, 6, 22, 0.98) 100%)'
-    },
-    {
-      number: '05',
-      title: 'Osama Sakr Manning Agency',
-      status: 'Live',
-      statusClass: 'status-live',
-      type: 'B2B Web App',
-      description: 'Agency management platform for recruitment, project tracking, and team collaboration with real-time analytics dashboards.',
-      techStack: ['React', 'Firebase', 'Stripe', 'Analytics'],
-      gradient: 'linear-gradient(135deg, rgba(10, 16, 28, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%)'
-    },
-    {
-      number: '06',
-      title: 'Port Said Tourism App',
-      status: 'Idea',
-      statusClass: 'status-idea',
-      type: 'B2G Project',
-      description: 'Mobile app for city exploration with AR features, cultural heritage information, and local guides bringing the city to life.',
-      techStack: ['Flutter', 'Cloud Functions', 'Maps', 'AR Kit'],
-      gradient: 'linear-gradient(135deg, rgba(16, 14, 36, 0.95) 0%, rgba(10, 8, 24, 0.98) 100%)'
-    }
+  // Static config for the projects
+  private projectConfigs = [
+    { number: '01', statusKey: 'progress', typeKey: 'internal', techStack: ['Angular', 'GSAP', 'Tailwind', 'Canvas'], gradient: 'linear-gradient(135deg, rgba(14, 14, 38, 0.95) 0%, rgba(8, 8, 24, 0.98) 100%)', statusClass: 'status-progress' },
+    { number: '02', statusKey: 'updating', typeKey: 'product', techStack: ['Angular', 'Flutter', 'Node.js', 'PostgreSQL'], gradient: 'linear-gradient(135deg, rgba(16, 12, 34, 0.95) 0%, rgba(10, 8, 26, 0.98) 100%)', statusClass: 'status-updating' },
+    { number: '03', statusKey: 'idea', typeKey: 'saas', techStack: ['Next.js', 'MongoDB', 'Stripe', 'Cloud Functions'], gradient: 'linear-gradient(135deg, rgba(10, 14, 30, 0.95) 0%, rgba(6, 8, 22, 0.98) 100%)', statusClass: 'status-idea' },
+    { number: '04', statusKey: 'progress', typeKey: 'b2b', techStack: ['Angular', 'Express.js', 'PostgreSQL', 'Maps API'], gradient: 'linear-gradient(135deg, rgba(14, 10, 32, 0.95) 0%, rgba(8, 6, 22, 0.98) 100%)', statusClass: 'status-progress' },
+    { number: '05', statusKey: 'live', typeKey: 'b2bweb', techStack: ['React', 'Firebase', 'Stripe', 'Analytics'], gradient: 'linear-gradient(135deg, rgba(10, 16, 28, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%)', statusClass: 'status-live' },
+    { number: '06', statusKey: 'idea', typeKey: 'b2g', techStack: ['Flutter', 'Node.js', 'PostGIS', 'ARCore'], gradient: 'linear-gradient(135deg, rgba(16, 14, 40, 0.95) 0%, rgba(10, 8, 28, 0.98) 100%)', statusClass: 'status-idea' }
   ];
 
-  ngAfterViewInit(): void {
-    gsap.registerPlugin(ScrollTrigger);
+  projects = computed<Project[]>(() => {
+    const t = this.translations();
+    return this.projectConfigs.map((config, index) => ({
+      ...config,
+      title: t.items[index].title,
+      description: t.items[index].desc,
+      status: t.status[config.statusKey],
+      type: t.types[config.typeKey]
+    }));
+  });
 
-    // Header entrance animation
+  async ngAfterViewInit() {
+    gsap.registerPlugin(ScrollTrigger);
+    
+    // Animate Header
     this.headerObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !this.headerAnimated) {
-          this.headerAnimated = true;
-          this.animateHeader();
-          this.headerObserver?.disconnect();
-        }
-      });
-    }, { threshold: 0.3 });
+      if (entries[0].isIntersecting && !this.headerAnimated) {
+        this.headerAnimated = true;
+        this.animateHeader();
+      }
+    }, { threshold: 0.5 });
+    
     this.headerObserver.observe(this.sectionHeader.nativeElement);
 
-    // Stacked peel-away — wait for DOM
-    setTimeout(() => this.setupStackAnimation(), 300);
+    // Give browsers a moment to layout
+    setTimeout(() => {
+      this.initStackAnimation();
+    }, 100);
+  }
+
+  private animateHeader() {
+    const tl = gsap.timeline();
+    tl.fromTo(this.sectionHeader.nativeElement.querySelector('.section-title'),
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }
+    );
+    tl.fromTo(this.decorLine.nativeElement,
+      { width: 0 },
+      { width: 80, duration: 0.8, ease: 'power2.inOut' },
+      "-=0.5"
+    );
+  }
+
+  private initStackAnimation() {
+    const panels = this.projectPanels.toArray();
+    
+    panels.forEach((panelRef, i) => {
+      const panel = panelRef.nativeElement;
+      const inner = panel.querySelector('.panel-inner');
+      const isLast = i === panels.length - 1;
+
+      if (!isLast) {
+        ScrollTrigger.create({
+          trigger: panel,
+          start: 'top 120px',
+          endTrigger: this.stackContainer.nativeElement,
+          end: 'bottom bottom',
+          scrub: true,
+          onUpdate: (self) => {
+            // As user scrolls, shrink the stuck panel slightly and dim it
+            const progress = self.progress;
+            const scale = 1 - (progress * 0.05);
+            // Cap the opacity reduction to ensure it never completely disappears
+            const opacity = 1 - (progress * 0.15); 
+            
+            gsap.set(inner, {
+              scale: scale,
+              opacity: opacity
+            });
+          }
+        });
+      }
+    });
+
+    // Master ScrollTrigger for the container to handle the final scroll-out
+    ScrollTrigger.create({
+      trigger: this.stackContainer.nativeElement,
+      start: 'top bottom',
+      end: 'bottom top',
+      refreshPriority: 1
+    });
   }
 
   ngOnDestroy(): void {
-    this.headerObserver?.disconnect();
-    this.scrollTriggers.forEach(st => st.kill());
-  }
-
-  private animateHeader(): void {
-    const tl = gsap.timeline();
-    tl.fromTo(this.sectionHeader.nativeElement,
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }
-    );
-    tl.to(this.decorLine.nativeElement,
-      { width: 60, duration: 0.6, ease: 'power3.out' },
-      '-=0.4'
-    );
-  }
-
-  private setupStackAnimation(): void {
-    const panels = this.projectPanels.toArray().map(p => p.nativeElement);
-    if (!panels.length) return;
-
-    // Optional entrance stagger for panels
-    gsap.fromTo(panels,
-      { opacity: 0, y: 80 },
-      {
-        opacity: 1,
-        y: 0,
-        stagger: 0.15,
-        duration: 0.8,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: this.stackContainer.nativeElement,
-          start: 'top 80%',
-        }
-      }
-    );
-
-    // Set up peel-away effect for each panel except the last
-    const spacing = 40; // Extra spacing factor
-    panels.forEach((panel: HTMLElement, i: number) => {
-      if (i === panels.length - 1) return; // last panel doesn't peel
-
-      const st = ScrollTrigger.create({
-        trigger: panel,
-        start: () => `top ${120 + i * spacing}px`, // Accounting for top offset
-        end: () => `bottom ${120 + i * spacing}px`,
-        scrub: 0.5,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          // Scale down, move up slightly, and fade
-          gsap.set(panel, {
-            scale: 1 - (progress * 0.08),
-            y: -(progress * 30),
-            opacity: 1 - (progress * 0.6),
-            filter: `brightness(${1 - progress * 0.4})`
-          });
-        }
-      });
-      this.scrollTriggers.push(st);
-    });
+    if (this.headerObserver) this.headerObserver.disconnect();
+    ScrollTrigger.getAll().forEach(t => t.kill());
   }
 }

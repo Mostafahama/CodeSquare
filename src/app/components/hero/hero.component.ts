@@ -1,5 +1,6 @@
-import { Component, OnDestroy, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, HostListener, ViewChild, ElementRef, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslationService } from '../../services/translation.service';
 import { HeroTypingComponent } from './hero-typing.component';
 import { HeroTextGenerateComponent } from './hero-text-generate.component';
 
@@ -8,8 +9,15 @@ import { HeroTextGenerateComponent } from './hero-text-generate.component';
   standalone: true,
   imports: [CommonModule, HeroTypingComponent, HeroTextGenerateComponent],
   template: `
-    <div class="hero-container w-full h-screen relative bg-deep-black overflow-hidden flex items-center justify-center pt-20">
+    <header id="hero-container" class="hero-container w-full h-screen relative bg-deep-black overflow-hidden flex items-center justify-center pt-20">
       
+      <!-- Language Toggle inside Hero -->
+      <div class="absolute top-24 end-6 md:top-8 md:end-10 z-[110] flex items-center gap-2 cursor-pointer group bg-[rgba(168,85,247,0.15)] hover:bg-[#A855F7] backdrop-blur-md rounded-full px-4 py-2 transition-all duration-300 border border-[rgba(168,85,247,0.3)] shadow-[0_0_15px_rgba(168,85,247,0.2)]" (click)="toggleLanguage()">
+        <span class="font-inter font-bold text-[13px] text-white tracking-widest uppercase">
+          {{ (translationService.currentLang() === 'en') ? 'عربي' : 'EN' }}
+        </span>
+      </div>
+
       <!-- Interactive Canvas String Wave Background -->
       <canvas #waveCanvas 
               class="absolute inset-0 w-full h-full z-[1] cursor-crosshair" 
@@ -23,13 +31,10 @@ import { HeroTextGenerateComponent } from './hero-text-generate.component';
       <div class="hero-content relative z-10 text-center flex flex-col items-center gap-2 pointer-events-none" style="transform: translateY(-5vh);">
         <app-hero-typing></app-hero-typing>
         <app-hero-text-generate></app-hero-text-generate>
-        
-        <!-- CTA Button -->
-        <button class="hero-cta-btn pointer-events-auto mt-12" (click)="scrollToServices()">Explore Our Work</button>
       </div>
 
       <!-- Premium Wave Gradient Layer -->
-      <div class="hero-gradient-wave absolute bottom-0 left-0 w-full h-1/5 pointer-events-none z-[5] opacity-90">
+      <div class="hero-gradient-wave absolute bottom-0 start-0 w-full h-1/5 pointer-events-none z-[5] opacity-90">
         <svg class="w-full h-full filter blur-[1px]" viewBox="0 0 1400 300" preserveAspectRatio="none">
           <defs>
             <linearGradient id="waveGradient" x1="0%" x2="100%" y1="0%" y2="0%">
@@ -44,18 +49,18 @@ import { HeroTextGenerateComponent } from './hero-text-generate.component';
       </div>
 
       <!-- Glow Effect on Wave -->
-      <div class="hero-wave-glow absolute bottom-[20%] left-0 w-full h-20 pointer-events-none z-[4]" 
+      <div class="hero-wave-glow absolute bottom-[20%] start-0 w-full h-20 pointer-events-none z-[4]" 
            style="filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.4));">
       </div>
 
       <!-- Scroll Indicator Bouncing Down -->
-      <div class="scroll-indicator absolute bottom-10 left-1/2 transform -translate-x-1/2 z-10 opacity-60">
+      <div class="scroll-indicator absolute bottom-10 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 z-10 opacity-60">
         <svg class="w-6 h-6 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
         </svg>
       </div>
 
-    </div>
+    </header>
   `,
   styles: [`
     .hero-container {
@@ -113,7 +118,9 @@ import { HeroTextGenerateComponent } from './hero-text-generate.component';
   `]
 })
 export class HeroComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('waveCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('waveCanvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+  
+  public translationService = inject(TranslationService);
   
   private ctx!: CanvasRenderingContext2D | null;
   private animationFrameId: number | null = null;
@@ -226,9 +233,13 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     this.animationFrameId = requestAnimationFrame(this.animateWaves);
   }
 
-  scrollToServices(): void {
-    const el = document.getElementById('services-section');
+  scrollToWork(): void {
+    const el = document.getElementById('projects-section');
     el?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  toggleLanguage(): void {
+    this.translationService.toggleLanguage();
   }
 
   ngOnDestroy(): void {

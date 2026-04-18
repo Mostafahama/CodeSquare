@@ -1,21 +1,24 @@
-import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { gsap } from 'gsap';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-nav',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <!-- Top-left standalone logo -->
-    <div class="fixed top-8 left-8 z-[100] hidden md:block">
+    <!-- Top-start standalone logo -->
+    <div class="fixed top-8 start-8 z-[100] hidden md:block">
       <a class="font-readex font-light text-2xl text-white tracking-widest cursor-pointer" style="text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);">
         CS<span class="text-lilac">.</span>
       </a>
     </div>
 
+
+
     <!-- Center Floating Pill Navigation -->
-    <nav class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] md:w-auto">
+    <nav class="fixed top-6 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 z-[100] w-[90%] md:w-auto overflow-visible" [attr.dir]="translationService.currentDir()">
       <div class="nav-pill flex items-center justify-between md:justify-center p-2 bg-[#A855F7]/10 backdrop-blur-xl border border-[#A855F7]/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)] rounded-full relative" (mouseleave)="hideHighlight()">
         
         <!-- Premium GSAP Sliding Highlight Blob -->
@@ -27,15 +30,15 @@ import { gsap } from 'gsap';
                (mouseenter)="moveHighlight($event)"
                class="nav-tab cursor-pointer"
                [class.active-tab]="active === 'home'">
-               Home
+               {{ translations().home }}
             </a>
           </li>
           <li>
-            <a (click)="active = 'about'; scrollTo('about-section')" 
+            <a (click)="active = 'about'; scrollTo('brand-statement')" 
                (mouseenter)="moveHighlight($event)"
                class="nav-tab cursor-pointer"
                [class.active-tab]="active === 'about'">
-               About
+               {{ translations().about }}
             </a>
           </li>
           <li>
@@ -43,7 +46,15 @@ import { gsap } from 'gsap';
                (mouseenter)="moveHighlight($event)"
                class="nav-tab cursor-pointer"
                [class.active-tab]="active === 'services'">
-               Services
+               {{ translations().services }}
+            </a>
+          </li>
+          <li>
+            <a (click)="active = 'work'; scrollTo('projects-section')" 
+               (mouseenter)="moveHighlight($event)"
+               class="nav-tab cursor-pointer"
+               [class.active-tab]="active === 'work'">
+               {{ translations().work }}
             </a>
           </li>
           <li>
@@ -51,15 +62,7 @@ import { gsap } from 'gsap';
                (mouseenter)="moveHighlight($event)"
                class="nav-tab cursor-pointer"
                [class.active-tab]="active === 'process'">
-               Process
-            </a>
-          </li>
-          <li>
-            <a (click)="active = 'contact'; scrollTo('consultation-form')" 
-               (mouseenter)="moveHighlight($event)"
-               class="nav-tab cursor-pointer"
-               [class.active-tab]="active === 'contact'">
-               Contact
+               {{ processLabel() }}
             </a>
           </li>
         </ul>
@@ -76,11 +79,10 @@ import { gsap } from 'gsap';
       scrollbar-width: none;
     }
 
-    /* Essential CSS Performance properties for GSAP Slide */
     .sliding-highlight {
       position: absolute;
-      top: 8px; /* Offset for padding */
-      left: 0;
+      top: 8px;
+      inset-inline-start: 0;
       height: calc(100% - 16px);
       background-color: rgba(168, 85, 247, 0.25);
       border-radius: 9999px;
@@ -88,8 +90,7 @@ import { gsap } from 'gsap';
       opacity: 0;
       z-index: 10;
       will-change: transform, width, opacity;
-      transform-origin: left center;
-      /* Notice NO CSS transitions here; GSAP handles everything for 60fps */
+      transform-origin: center center;
     }
 
     .nav-tab {
@@ -119,23 +120,51 @@ import { gsap } from 'gsap';
   `]
 })
 export class NavComponent {
+   public translationService = inject(TranslationService);
    @ViewChild('highlight', { static: true }) highlightRef!: ElementRef;
    active: string = 'home';
 
+   translations = this.translationService.getTranslations('nav');
+   
+   // Direct mapping for process label to ensure it's reactive and clean
+   processLabel = computed(() => {
+     const lang = this.translationService.currentLang();
+     return lang === 'ar' ? this.translationService.getTranslations('process')().title : 'Process';
+   });
+
    moveHighlight(event: MouseEvent): void {
      const target = event.currentTarget as HTMLElement;
-     // Retrieve positional data relative to the pill container
      const width = target.offsetWidth;
-     const left = target.offsetLeft;
-
-     gsap.to(this.highlightRef.nativeElement, {
-       x: left,
-       width: width,
-       opacity: 1,
-       duration: 0.4,
-       ease: "back.out(1.2)",
-       overwrite: true // Prevent animation conflicts
-     });
+     
+     // In RTL, we calculate offset from the right edge
+     const isRtl = this.translationService.currentDir() === 'rtl';
+     const parentWidth = target.parentElement?.parentElement?.offsetWidth || 0;
+     
+     // Get logical "start" offset
+     let startOffset = target.offsetLeft;
+     
+     if (isRtl) {
+       // In many browsers, offsetLeft in RTL is still from left
+       // We need to mirror it for GSAP x
+       startOffset = (parentWidth - target.offsetLeft - width);
+       gsap.to(this.highlightRef.nativeElement, {
+         x: -startOffset, // Move left relative to right start
+         width: width,
+         opacity: 1,
+         duration: 0.4,
+         ease: "back.out(1.2)",
+         overwrite: true 
+       });
+     } else {
+       gsap.to(this.highlightRef.nativeElement, {
+         x: startOffset,
+         width: width,
+         opacity: 1,
+         duration: 0.4,
+         ease: "back.out(1.2)",
+         overwrite: true 
+       });
+     }
    }
 
    hideHighlight(): void {
@@ -147,10 +176,14 @@ export class NavComponent {
      });
    }
 
+   toggleLanguage() {
+     this.translationService.toggleLanguage();
+   }
+
    scrollTo(elementId: string): void {
-    const el = document.getElementById(elementId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
+     const el = document.getElementById(elementId);
+     if (el) {
+       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+     }
+   }
 }

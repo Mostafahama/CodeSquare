@@ -5,20 +5,26 @@ import {
   OnDestroy, 
   input,
   NgZone,
-  effect
+  inject,
+  ChangeDetectorRef,
+  OnChanges,
+  SimpleChanges,
+  untracked,
+  computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { gsap } from 'gsap';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-writing-text',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="writing-container" [class.is-ready]="isReady">
-      @for (word of words; track $index) {
+    <div class="writing-container" [attr.dir]="translationService.currentDir()">
+      @for (word of words(); track $index) {
         <span class="word-span">
-          {{ word }}{{ ' ' }}
+          <span class="word-content">{{ word }}</span>{{ ' ' }}
         </span>
       }
     </div>
@@ -27,18 +33,14 @@ import { gsap } from 'gsap';
     .writing-container {
       display: inline-block;
       width: 100%;
-      min-height: 1.2em; /* Ensure it's never 0 height */
+      min-height: 1.2em;
     }
     
     .word-span {
       display: inline-block;
       white-space: pre-wrap;
-      
-      /* START STATE: Fully visible by default! 
-         This is "Fail-Safe". If JS fails, text is visible. */
-      opacity: 1;
-      transform: translateY(0);
-      
+      opacity: 0;
+      transform: translateY(15px);
       will-change: transform, opacity;
       font-family: inherit;
       font-size: inherit;
@@ -46,52 +48,74 @@ import { gsap } from 'gsap';
       font-weight: inherit;
       line-height: inherit;
     }
+
+    .word-content {
+      unicode-bidi: isolate; 
+    }
   `]
 })
-export class WritingTextComponent implements AfterViewInit, OnDestroy {
+export class WritingTextComponent implements AfterViewInit, OnDestroy, OnChanges {
   text = input.required<string>();
   delay = input<number>(0);
-  
-  // Optional: allows parent to re-trigger or delay start
   trigger = input<boolean>(true);
 
-  isReady = false;
+  public translationService = inject(TranslationService);
+  
+  words = computed(() => {
+    const textVal = this.text();
+    return textVal ? textVal.split(' ') : [];
+  });
+
   private observer: IntersectionObserver | null = null;
   private hasAnimated = false;
+  private animationTl: gsap.core.Timeline | null = null;
 
   constructor(
     private el: ElementRef, 
-    private ngZone: NgZone
-  ) {
-    // Watch for trigger changes if needed
-    effect(() => {
-      if (this.trigger() && this.isReady && !this.hasAnimated) {
-        // We could trigger here, but IntersectionObserver is better for performance
-      }
-    });
-  }
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  get words(): string[] {
-    const textVal = this.text();
-    return textVal ? textVal.split(' ') : [];
+  ngOnChanges(changes: SimpleChanges) {
+    // If text changes after initial render, re-trigger
+    if (changes['text'] && !changes['text'].firstChange) {
+      this.resetAndReanimate();
+    }
   }
 
   ngAfterViewInit() {
-    this.isReady = true;
     this.setupIntersectionObserver();
+  }
+
+  private resetAndReanimate() {
+    this.hasAnimated = false;
+    
+    this.ngZone.runOutsideAngular(() => {
+        // Kill existing animation
+        if (this.animationTl) {
+          this.animationTl.kill();
+        }
+        
+        // Brief delay before re-scanning DOM for new @for elements
+        setTimeout(() => {
+            const elements = this.el.nativeElement.querySelectorAll('.word-span');
+            gsap.set(elements, { opacity: 0, y: 15 });
+            this.setupIntersectionObserver();
+        }, 10);
+    });
   }
 
   ngOnDestroy() {
     if (this.observer) this.observer.disconnect();
+    if (this.animationTl) this.animationTl.kill();
   }
 
   private setupIntersectionObserver() {
-    // If we've already animated or trigger is false, skip
     if (this.hasAnimated) return;
+    if (this.observer) this.observer.disconnect();
 
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        // Firing when 10% visible
         if (entry.isIntersecting && !this.hasAnimated && this.trigger()) {
           this.hasAnimated = true;
           this.runAnimation();
@@ -100,7 +124,7 @@ export class WritingTextComponent implements AfterViewInit, OnDestroy {
       });
     }, { 
       threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px' // Trigger slightly before it's fully in view
+      rootMargin: '0px 0px -50px 0px'
     });
 
     this.observer.observe(this.el.nativeElement);
@@ -108,21 +132,19 @@ export class WritingTextComponent implements AfterViewInit, OnDestroy {
 
   private runAnimation() {
     this.ngZone.runOutsideAngular(() => {
-      // Small timeout to ensure Angular has finished any pending renders
+      // Small timeout to ensure Angular finished rendering the new words
       setTimeout(() => {
         const elements = this.el.nativeElement.querySelectorAll('.word-span');
         
         if (elements && elements.length > 0) {
-          // Use .from() to animate FROM hidden TO the default (visible) state
-          // This way, if the animation fails to start, the elements remain visible.
-          gsap.from(elements, {
-            opacity: 0,
-            y: 15,
+          this.animationTl = gsap.timeline();
+          this.animationTl.to(elements, {
+            opacity: 1,
+            y: 0,
             duration: 0.8,
             stagger: 0.05,
             ease: 'power2.out',
-            delay: this.delay() / 1000,
-            clearProps: 'all' // Clean up after animation
+            delay: this.delay() / 1000
           });
         }
       }, 50);

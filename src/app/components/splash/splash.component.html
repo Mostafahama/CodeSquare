@@ -1,9 +1,19 @@
-<!-- PREMIUM SPLASH SCREEN: Layout Corrected (Branding Top-Left, Button Bottom-Center) -->
+<!-- PREMIUM SPLASH SCREEN: Spline 3D Robot with Cursor Tracking -->
 <div class="splash-wrapper" #splashWrapper [class.exit]="isExiting">
 
-  <!-- LAYER 1: 3D Canvas (Full viewport) -->
-  <div class="spline-embed">
-    <canvas id="splashCanvas" #splashCanvas></canvas>
+  <!-- LAYER 1: Spline 3D Canvas (Full viewport) -->
+  <div class="spline-embed" [class.loaded]="!isLoading">
+    <canvas #splashCanvas id="splashCanvas"></canvas>
+  </div>
+
+  <!-- LAYER 1b: Loading Indicator (shown while Spline loads) -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loader-ring">
+      <div class="ring-segment"></div>
+      <div class="ring-segment"></div>
+      <div class="ring-segment"></div>
+    </div>
+    <span class="loading-text">Loading Experience...</span>
   </div>
 
   <!-- LAYER 2: Ambient Glow (Full viewport) -->
@@ -36,18 +46,21 @@
     <!-- Center spacer for layout -->
     <div class="spacer"></div>
 
-    <!-- Action Section (Bottom-Center) -->
+    <!-- Action Section (Bottom-Center) — Arrow Button with Neon Gradient -->
     <div class="button-container">
-      <button class="enter-button" 
+      <button class="arrow-button" 
               [class.visible]="buttonVisible" 
               (click)="onEnterClick()" 
               [disabled]="isExiting"
               type="button">
-        <span class="btn-text">Explore</span>
-        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-          <polyline points="12 5 19 12 12 19"></polyline>
-        </svg>
+        <span class="btn-text">Enter Code</span>
+        <span class="btn-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+        <span class="btn-glow"></span>
       </button>
       <p class="skip-hint" [class.visible]="buttonVisible">
         Press <kbd>Space</kbd> to enter

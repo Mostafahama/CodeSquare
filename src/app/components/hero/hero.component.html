@@ -1,8 +1,8 @@
 <section class="hero min-h-screen flex items-center justify-center relative overflow-hidden bg-navy pt-24">
   <div class="max-w-7xl mx-auto px-6 lg:px-20 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-    <div class="hero-text text-left" @fadeInUp>
+    <div class="hero-text text-start" @fadeInUp>
       <h1 class="font-display font-bold text-5xl lg:text-7xl leading-tight mb-6 text-white" @staggerText>
-        <span *ngFor="let word of headlineWords" class="inline-block mr-3">{{ word }}</span>
+        <span *ngFor="let word of headlineWords" class="inline-block me-3">{{ word }}</span>
       </h1>
       <p class="font-body text-gray text-lg lg:text-xl mb-10 max-w-lg leading-relaxed">
         CODE SQUARE builds custom web applications, mobile apps, and enterprise systems 

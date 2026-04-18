@@ -1,12 +1,13 @@
-import { Component, OnInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, inject, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-hero-text-generate',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <p class="text-generate">
+    <p class="text-generate" #textContainer>
       <span #generatedText></span>
     </p>
   `,
@@ -30,12 +31,12 @@ import { CommonModule } from '@angular/common';
     @keyframes textGenerateBlur {
       0% {
         opacity: 0;
-        filter: blur(0.8px);
+        filter: blur(8px);
         transform: translateY(10px);
       }
       50% {
         opacity: 0.7;
-        filter: blur(0.3px);
+        filter: blur(3px);
       }
       100% {
         opacity: 1;
@@ -45,29 +46,63 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class HeroTextGenerateComponent implements OnInit {
+export class HeroTextGenerateComponent implements OnInit, OnDestroy {
   @ViewChild('generatedText', { static: true }) generatedTextElement!: ElementRef<HTMLElement>;
-  private readonly text = 'We turn complex ideas into effortless digital experiences';
+  @ViewChild('textContainer', { static: true }) textContainer!: ElementRef<HTMLElement>;
+  
+  public translationService = inject(TranslationService);
+  private timer: any;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {
+    effect(() => {
+      // Track language changes
+      this.translationService.currentLang();
+      // Safely re-animate
+      untracked(() => this.resetAndAnimate());
+    });
+  }
 
-  ngOnInit() {
-    // Delay corresponding to typing effect finishing + slight pause (400ms delay + 1320ms typing + 500ms delay)
-    setTimeout(() => this.animateText(), 2220); 
+  ngOnInit() {}
+
+  private resetAndAnimate() {
+    if (this.timer) clearInterval(this.timer);
+    
+    // Safety delay for detection cycle
+    setTimeout(() => {
+        if (this.generatedTextElement) {
+            const el = this.generatedTextElement.nativeElement;
+            this.textContainer.nativeElement.classList.remove('animate-in');
+            el.textContent = '';
+            
+            // Re-trigger animation
+            setTimeout(() => {
+                this.animateText();
+            }, 100);
+        }
+    }, 50);
   }
 
   private animateText() {
-    this.generatedTextElement.nativeElement.parentElement?.classList.add('animate-in');
+    const fullText = this.translationService.getTranslations('hero')()['sub'];
+    this.textContainer.nativeElement.classList.add('animate-in');
     
     let displayed = '';
-    const speed = 30; // 30ms per character
-    const interval = setInterval(() => {
-      if (displayed.length < this.text.length) {
-        displayed += this.text[displayed.length];
+    const speed = 20; 
+    let charIndex = 0;
+    
+    this.timer = setInterval(() => {
+      if (charIndex < fullText.length) {
+        displayed += fullText[charIndex];
         this.generatedTextElement.nativeElement.textContent = displayed;
+        charIndex++;
       } else {
-        clearInterval(interval);
+        clearInterval(this.timer);
+        this.cdr.detectChanges();
       }
     }, speed);
+  }
+
+  ngOnDestroy() {
+    if (this.timer) clearInterval(this.timer);
   }
 }

@@ -1,20 +1,24 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, inject, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-hero-typing',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h1 class="typing-text m-0 relative">
+    <h1 class="typing-text m-0 relative" [attr.dir]="translationService.currentDir()">
       <span #typingText></span>
-      <span class="typing-cursor" [class.blinking]="isBlinking"></span>
+      <span class="typing-cursor" 
+            [class.blinking]="isBlinking" 
+            [class.rtl-cursor]="translationService.currentDir() === 'rtl'">
+      </span>
     </h1>
   `,
   styles: [`
     .typing-text {
       font-family: 'Readex Pro', sans-serif;
-      font-size: clamp(100px, 15vw, 220px);
+      font-size: clamp(60px, 10vw, 140px);
       font-weight: 200;
       color: #F8FAFC;
       letter-spacing: -0.03em;
@@ -23,6 +27,8 @@ import { CommonModule } from '@angular/common';
         0 0 15px rgba(168, 85, 247, 0.6),
         0 0 30px rgba(168, 85, 247, 0.4),
         0 0 60px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: baseline;
     }
     
     .typing-cursor {
@@ -30,7 +36,7 @@ import { CommonModule } from '@angular/common';
       width: 4px;
       height: 0.85em;
       background-color: #A855F7;
-      margin-left: 2px;
+      margin-inline-start: 4px; 
       vertical-align: text-bottom;
       animation: none;
     }
@@ -48,39 +54,59 @@ import { CommonModule } from '@angular/common';
 export class HeroTypingComponent implements OnInit, OnDestroy {
   @ViewChild('typingText', { static: true }) typingTextElement!: ElementRef<HTMLElement>;
   
+  public translationService = inject(TranslationService);
+
   isBlinking = false;
   private typingInterval: any;
-  private readonly textToType = 'Code Square';
-  private readonly typingSpeed = 120; // ms per char
+  private readonly typingSpeed = 100;
   private currentIndex = 0;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {
+    effect(() => {
+      // Access the signal to track it
+      this.translationService.currentLang();
+      // Re-trigger typing safely
+      untracked(() => this.resetAndType());
+    });
+  }
 
-  ngOnInit() {
-    this.startTyping();
+  ngOnInit() {}
+
+  private resetAndType() {
+    if (this.typingInterval) clearInterval(this.typingInterval);
+    this.currentIndex = 0;
+    
+    // Use a small delay to ensure detection has finished before manual DOM update
+    setTimeout(() => {
+        if (this.typingTextElement) {
+            this.typingTextElement.nativeElement.textContent = '';
+            this.isBlinking = false;
+            this.startTyping();
+        }
+    }, 50);
   }
 
   private startTyping() {
+    const textToType = this.translationService.getTranslations('hero')()['welcome'];
     let displayedText = '';
     
-    // Slight initial delay before typing starts to look natural
+    this.isBlinking = true; 
     setTimeout(() => {
-        this.isBlinking = true; // start blinking cursor before typing begins
-        setTimeout(() => {
-            this.isBlinking = false; // stop blinking while typing
-            this.typingInterval = setInterval(() => {
-            if (this.currentIndex < this.textToType.length) {
-            displayedText += this.textToType[this.currentIndex];
-            this.typingTextElement.nativeElement.textContent = displayedText;
-            this.currentIndex++;
-        } else {
-            clearInterval(this.typingInterval);
-            this.isBlinking = true;
-            this.cdr.detectChanges();
-        }
+        this.isBlinking = false;
+        this.typingInterval = setInterval(() => {
+            if (this.currentIndex < textToType.length) {
+                displayedText += textToType[this.currentIndex];
+                if (this.typingTextElement) {
+                    this.typingTextElement.nativeElement.textContent = displayedText;
+                }
+                this.currentIndex++;
+            } else {
+                clearInterval(this.typingInterval);
+                this.isBlinking = true;
+                this.cdr.detectChanges();
+            }
         }, this.typingSpeed);
-        }, 200); // 200ms delay after cursor appears before typing
-    }, 400); 
+    }, 300);
   }
 
   ngOnDestroy() {

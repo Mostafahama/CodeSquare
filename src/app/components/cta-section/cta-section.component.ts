@@ -1,28 +1,29 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-cta-section',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <section id="consultation-form" class="cta-section">
+    <section id="consultation-form" class="cta-section" [attr.dir]="translationService.currentDir()">
       <div class="cta-container">
         <!-- Split Layout -->
         <div class="cta-split">
           
           <!-- Left: Pitch -->
           <div class="cta-pitch">
-            <h2 class="font-grotesk font-bold text-text-primary mb-6 leading-tight" style="font-size: clamp(2rem, 4vw, 2.625rem);">
-              Let's build something <span class="text-transparent bg-clip-text bg-gradient-to-r from-lilac to-magenta">extraordinary.</span>
+            <h2 class="font-grotesk font-bold text-text-primary mb-6 leading-tight rtl:leading-[1.4]" style="font-size: clamp(2rem, 4vw, 2.625rem);">
+              {{ pitchMain() }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-lilac to-magenta">{{ pitchAccent() }}</span>
             </h2>
             <p class="font-inter font-light text-text-secondary text-lg mb-8 leading-relaxed max-w-md">
-              Whether you need a high-performance web app, a native mobile experience, or a complex enterprise system—we're ready to engineer it.
+              {{ translations().sub }}
             </p>
             <div class="premium-divider"></div>
             <div class="contact-info mt-8">
-              <p class="font-inter text-text-secondary mb-2">Or email us directly at:</p>
+              <p class="font-inter text-text-secondary mb-2">{{ translations().emailLabel }}</p>
               <a href="mailto:hello@codesquare.tech" class="font-grotesk font-semibold text-xl text-white hover:text-lilac transition-colors">hello&#64;codesquare.tech</a>
             </div>
           </div>
@@ -35,16 +36,16 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
                 
                 <!-- Project Name -->
                 <div class="form-group">
-                  <label class="form-label" for="projectName">Project Name</label>
+                  <label class="form-label" for="projectName">{{ translations().form.projectName }}</label>
                   <div class="input-wrapper">
-                    <input type="text" id="projectName" formControlName="projectName" class="form-input" placeholder="e.g. Acme Corp Redesign" />
+                    <input type="text" id="projectName" formControlName="projectName" class="form-input" [placeholder]="projectNamePlaceholder()" />
                     <span class="validation-icon" *ngIf="isValid('projectName')">✓</span>
                   </div>
                 </div>
 
                 <!-- Email -->
                 <div class="form-group">
-                  <label class="form-label" for="email">Your Email</label>
+                  <label class="form-label" for="email">{{ translations().form.email }}</label>
                   <div class="input-wrapper">
                     <input type="email" id="email" formControlName="email" class="form-input" placeholder="you@company.com" />
                     <span class="validation-icon" *ngIf="isValid('email')">✓</span>
@@ -53,14 +54,14 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
 
                 <!-- Budget Range -->
                 <div class="form-group">
-                  <label class="form-label" for="budget">Budget Range</label>
+                  <label class="form-label" for="budget">{{ translations().form.budget }}</label>
                   <div class="input-wrapper select-wrapper">
                     <select id="budget" formControlName="budget" class="form-input custom-select">
-                      <option value="" disabled selected>Select an estimate...</option>
+                      <option value="" disabled selected>{{ translations().form.budgetPlaceholder }}</option>
                       <option value="<10k">&lt; $10k</option>
                       <option value="10k-50k">$10k - $50k</option>
                       <option value="50k+">$50k+</option>
-                      <option value="custom">Custom</option>
+                      <option value="custom">{{ customLabel() }}</option>
                     </select>
                     <span class="validation-icon" *ngIf="isValid('budget')">✓</span>
                   </div>
@@ -68,10 +69,10 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
 
                 <!-- Project Type (Checkboxes) -->
                 <div class="form-group mb-2">
-                  <label class="form-label mb-3 block">Project Type</label>
+                  <label class="form-label mb-3 block">{{ translations().form.projectType }}</label>
                   <div class="checkbox-grid">
-                    <label class="checkbox-container" *ngFor="let type of projectTypes; let i = index">
-                      <input type="checkbox" [value]="type" (change)="onCheckboxChange($event)" />
+                    <label class="checkbox-container" *ngFor="let type of projectTypes(); let i = index">
+                      <input type="checkbox" [value]="rawProjectTypes[i]" (change)="onCheckboxChange($event, i)" />
                       <span class="checkmark"></span>
                       <span class="check-label">{{type}}</span>
                     </label>
@@ -80,16 +81,16 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
 
                 <!-- Message -->
                 <div class="form-group mb-4">
-                  <label class="form-label" for="message">Message Details</label>
+                  <label class="form-label" for="message">{{ translations().form.message }}</label>
                   <div class="input-wrapper">
-                    <textarea id="message" formControlName="message" class="form-input" rows="3" placeholder="Tell us about the features, timeline, and goals..."></textarea>
+                    <textarea id="message" formControlName="message" class="form-input" rows="3" [placeholder]="translations().form.messagePlaceholder"></textarea>
                     <span class="validation-icon" *ngIf="isValid('message')">✓</span>
                   </div>
                 </div>
 
                 <!-- Submit Button -->
                 <button type="submit" class="submit-btn" [disabled]="consultationForm.invalid || isSubmitting">
-                  <span *ngIf="!isSubmitting">Send Request</span>
+                  <span *ngIf="!isSubmitting">{{ translations().form.send }}</span>
                   <div *ngIf="isSubmitting" class="spinner"></div>
                 </button>
               </form>
@@ -103,11 +104,11 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                 </div>
-                <h3 class="font-grotesk font-bold text-2xl text-white mb-2">Request Received</h3>
+                <h3 class="font-grotesk font-bold text-2xl text-white mb-2">{{ translations().success.title }}</h3>
                 <p class="font-inter text-text-secondary">
-                  Thank you! Our technical lead will review your details and reach out within 24 hours.
+                  {{ translations().success.desc }}
                 </p>
-                <button class="hero-cta-btn mt-8 text-sm" (click)="resetForm()">Send Another Request</button>
+                <button class="hero-cta-btn mt-8 text-sm" (click)="resetForm()">{{ translations().success.another }}</button>
               </div>
             </ng-template>
 
@@ -158,7 +159,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
     .form-label {
       font-family: var(--font-body);
       font-weight: 500;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-secondary);
       margin-bottom: 6px;
       display: block;
@@ -181,6 +182,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
       color: #F8FAFC !important;
       transition: all 0.3s ease;
       box-sizing: border-box;
+      text-align: start;
     }
 
     .form-input:focus {
@@ -196,7 +198,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
 
     .validation-icon {
       position: absolute;
-      right: 16px;
+      inset-inline-end: 16px;
       top: 50%;
       transform: translateY(-50%);
       color: #10B981; /* Emerald Green */
@@ -224,7 +226,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
       font-family: var(--font-body);
       font-size: 13px;
       color: #CBD5E1;
-      padding-left: 28px;
+      padding-inline-start: 28px;
       user-select: none;
     }
 
@@ -239,7 +241,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
     .checkmark {
       position: absolute;
       top: 50%;
-      left: 0;
+      inset-inline-start: 0;
       transform: translateY(-50%);
       height: 18px;
       width: 18px;
@@ -373,13 +375,23 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, For
   `]
 })
 export class CtaSectionComponent implements OnInit {
+  public translationService = inject(TranslationService);
+  private fb = inject(FormBuilder);
+
   consultationForm!: FormGroup;
   isSubmitting = false;
   isSubmitted = false;
 
-  projectTypes = ['Web App', 'Mobile App', 'UI/UX Design', 'Custom System'];
+  translations = this.translationService.getTranslations('cta');
+  
+  pitchMain = computed(() => this.translationService.currentLang() === 'en' ? "Let's build something" : "لنقوم ببناء شيء");
+  pitchAccent = computed(() => this.translationService.currentLang() === 'en' ? "extraordinary." : "استثنائي معاً.");
+  
+  projectNamePlaceholder = computed(() => this.translationService.currentLang() === 'ar' ? 'مثال: إعادة تصميم شركة أكمي' : 'e.g. Acme Corp Redesign');
+  customLabel = computed(() => this.translationService.currentLang() === 'ar' ? 'مخصص' : 'Custom');
 
-  constructor(private fb: FormBuilder) {}
+  rawProjectTypes = ['Web App', 'Mobile App', 'UI/UX Design', 'Custom System'];
+  projectTypes = computed(() => this.translations().form.types);
 
   ngOnInit() {
     this.consultationForm = this.fb.group({
@@ -391,13 +403,15 @@ export class CtaSectionComponent implements OnInit {
     });
   }
 
-  onCheckboxChange(e: any) {
+  onCheckboxChange(e: any, index: number) {
     const types: FormArray = this.consultationForm.get('types') as FormArray;
+    const value = this.rawProjectTypes[index];
+
     if (e.target.checked) {
-      types.push(new FormControl(e.target.value));
+      types.push(new FormControl(value));
     } else {
-      const index = types.controls.findIndex(x => x.value === e.target.value);
-      types.removeAt(index);
+      const idx = types.controls.findIndex(x => x.value === value);
+      types.removeAt(idx);
     }
   }
 
@@ -409,11 +423,9 @@ export class CtaSectionComponent implements OnInit {
   onSubmit() {
     if (this.consultationForm.valid) {
       this.isSubmitting = true;
-      // Simulate API Call
       setTimeout(() => {
         this.isSubmitting = false;
         this.isSubmitted = true;
-        console.log('Form submission successful', this.consultationForm.value);
       }, 1500);
     }
   }

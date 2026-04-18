@@ -1,20 +1,20 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ElementRef, ViewChild, HostListener, AfterViewInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ThreeDService } from '../../services/three-d.service';
-import * as THREE from 'three';
+import { Application } from '@splinetool/runtime';
 
 /**
- * ✅ ENHANCED Splash Component - Visual Quality Improved
+ * ✅ SPLINE-POWERED Splash Component
  * 
- * IMPROVEMENTS:
- * 1. ✅ Robot is OPAQUE (transparent: false)
- * 2. ✅ Materials are GLOSSY with emissive glow
- * 3. ✅ Enhanced 5-light cinematic setup
- * 4. ✅ Proper color mapping (purple/pink/red neon)
- * 5. ✅ Better camera positioning
- * 6. ✅ Shadow mapping enabled
- * 7. ✅ ACES tone mapping for cinema quality
- * 8. ✅ Head follows cursor (FIXED logic)
+ * Uses @splinetool/runtime to render the 3D robot scene
+ * directly on a canvas. The Spline scene has built-in
+ * cursor-following logic (robot neck tracks mouse).
+ * 
+ * LAYERS:
+ * 1. Spline 3D Canvas (full viewport) - robot with cursor tracking
+ * 2. Ambient Glow overlay (follows mouse)
+ * 3. Particle field (floating particles)
+ * 4. UI overlay (branding top-left, explore button bottom-center)
+ * 5. Vignettes (top & bottom atmospheric gradients)
  */
 @Component({
   selector: 'app-splash',
@@ -23,273 +23,153 @@ import * as THREE from 'three';
   templateUrl: './splash.component.html',
   styleUrls: ['./splash.component.scss']
 })
-export class SplashComponent implements OnInit, OnDestroy {
+export class SplashComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() splashComplete = new EventEmitter<void>();
   @ViewChild('splashWrapper', { static: true }) splashWrapper!: ElementRef;
-  @ViewChild('splashCanvas') splashCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('splashCanvas', { static: false }) splashCanvas!: ElementRef<HTMLCanvasElement>;
 
   // UI state
   isExiting = false;
   brandingVisible = false;
   buttonVisible = false;
+  isLoading = true;
+  loadProgress = 0;
   isMobile = false;
 
   particles: any[] = [];
   private timeouts: any[] = [];
 
-  // Three.js instances
-  private scene!: THREE.Scene;
-  private camera!: THREE.PerspectiveCamera;
-  private renderer!: THREE.WebGLRenderer;
-  private model!: THREE.Group;
-  private headNode: THREE.Object3D | null = null;
-  private animationFrameId: number | null = null;
+  // Spline instance
+  private splineApp: Application | null = null;
 
-  // Head rotation tracking
-  private initialHeadRotationY: number = 0;
-  private initialHeadRotationX: number = 0;
-  private targetRotationY: number = 0;
-  private targetRotationX: number = 0;
-  private currentRotationY: number = 0;
-  private currentRotationX: number = 0;
-
-  constructor(private threeDService: ThreeDService) {}
+  constructor(private ngZone: NgZone) {}
 
   ngOnInit(): void {
     this.checkIfMobile();
     this.generateParticles();
 
-    // Sequence the UI reveals
-    this.timeouts.push(
-      setTimeout(() => { this.brandingVisible = true; }, 800),
-      setTimeout(() => { this.buttonVisible = true; }, 1500)
-    );
-
     // Initial glow center
     this.updateGlowPosition(window.innerWidth / 2, window.innerHeight / 2);
+  }
 
-    // Initialize Three.js after a short delay to ensure DOM is ready
-    setTimeout(() => {
-      this.initThreeJS();
-    }, 100);
+  ngAfterViewInit(): void {
+    // Initialize Spline after view is ready
+    this.ngZone.runOutsideAngular(() => {
+      setTimeout(() => this.initSpline(), 100);
+    });
   }
 
   ngOnDestroy(): void {
     this.timeouts.forEach(t => clearTimeout(t));
 
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer.forceContextLoss();
-    }
-    if (this.scene) {
-      this.scene.clear();
+    if (this.splineApp) {
+      this.splineApp.dispose();
+      this.splineApp = null;
     }
   }
 
   /**
-   * ✅ ENHANCED: Load GLB and setup complete scene
+   * Initialize Spline 3D scene on the canvas
    */
-  private async initThreeJS(): Promise<void> {
+  private async initSpline(): Promise<void> {
     try {
-      // Use ThreeDService but skip its internal animation loop
-      const { scene, camera, renderer, model } = await this.threeDService.loadGLB(
-        'splashCanvas',
-        'assets/3d/splash-robot.glb',
-        {
-          transparent: false,           // ✅ Make robot OPAQUE
-          primaryColor: '#7c3aed',
-          glowColor: '#ec4899',
-          backgroundColor: '#000000',
-          autoAnimate: false            // ✅ Take manual control
-        }
-      );
-
-      this.scene = scene;
-      this.camera = camera;
-      this.renderer = renderer;
-      this.model = model;
-
-      // 1. Setup renderer for cinema quality
-      this.setupRenderer();
-
-      // 2. Setup 5-light cinematic lighting
-      this.setupEnhancedLighting();
-
-      // 3. Apply glossy neon materials
-      this.applyPremiumMaterials(model);
-
-      // 4. Find and setup head tracking
-      this.findAndSetupHeadNode(model);
-
-      // 5. Position camera for best view
-      this.setupCamera();
-
-      // Start the animation loop
-      this.animateThreeJS();
-
-      console.log('✅ Enhanced splash screen initialized successfully');
-
-    } catch (e) {
-      console.error('Failed to load splash robot:', e);
-    }
-  }
-
-  private setupRenderer(): void {
-    this.renderer.setClearColor(0x0a0a0a, 0); // Transparent canvas, handled by wrapper BG
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  }
-
-  private setupEnhancedLighting(): void {
-    // Clear existing lights from ThreeDService if any
-    this.scene.children = this.scene.children.filter(child => !(child instanceof THREE.Light));
-
-    // KEY LIGHT (Main)
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 1024;
-    keyLight.shadow.mapSize.height = 1024;
-    this.scene.add(keyLight);
-
-    // FILL LIGHT (Soft side)
-    const fillLight = new THREE.DirectionalLight(0xd946ef, 0.8);
-    fillLight.position.set(-5, 4, -3);
-    this.scene.add(fillLight);
-
-    // RIM LIGHT (Edge glow)
-    const rimLight = new THREE.PointLight(0xec4899, 1.5);
-    rimLight.position.set(0, 3, -6);
-    this.scene.add(rimLight);
-
-    // BOTTOM ACCENT
-    const bottomLight = new THREE.PointLight(0x7c3aed, 1.2);
-    bottomLight.position.set(0, -3, 2);
-    this.scene.add(bottomLight);
-
-    // AMBIENT
-    const ambientLight = new THREE.AmbientLight(0x1a0033, 0.5);
-    this.scene.add(ambientLight);
-  }
-
-  private applyPremiumMaterials(model: THREE.Group): void {
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        const nameLower = child.name.toLowerCase();
-
-        // 🤖 HEAD: Glossy purple with neon pink emissive glow
-        if (nameLower.includes('head') || nameLower.includes('robothead')) {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: 0x7c3aed,
-            metalness: 0.8,
-            roughness: 0.15,
-            emissive: 0xec4899,
-            emissiveIntensity: 0.4,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.1
-          });
-        }
-
-        // 👁️ EYES: White glossy
-        else if (nameLower.includes('eye') || nameLower.includes('pupil')) {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            emissive: 0xffffff,
-            emissiveIntensity: 1.0,
-            metalness: 0.9,
-            roughness: 0.05
-          });
-        }
-
-        // 📦 BODY/BASE: Metallic dark purple
-        else if (nameLower.includes('body') || nameLower.includes('base') || nameLower.includes('cube')) {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: 0x1a0a2e,
-            metalness: 0.9,
-            roughness: 0.1,
-            emissive: 0xec4899,
-            emissiveIntensity: 0.2
-          });
-        }
-
-        // Hide background elements if any
-        else if (nameLower.includes('bg') || nameLower.includes('floor')) {
-          child.visible = false;
-        }
-
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-  }
-
-  private findAndSetupHeadNode(model: THREE.Group): void {
-    model.traverse((child) => {
-      if (child.name.toLowerCase().includes('head')) {
-        this.headNode = child;
-        this.initialHeadRotationY = child.rotation.y;
-        this.initialHeadRotationX = child.rotation.x;
+      const canvas = this.splashCanvas?.nativeElement;
+      if (!canvas) {
+        console.error('Splash canvas not found');
         return;
       }
-    });
-  }
 
-  private setupCamera(): void {
-    // Normal centered camera position
-    this.camera.position.set(0, 1.2, 4);
-    this.camera.lookAt(0, 0.5, 0);
-    this.camera.updateProjectionMatrix();
+      // Create Spline Application on the canvas
+      this.splineApp = new Application(canvas);
 
-    // Shift the model itself slightly right to balance with the left-aligned text
-    if (this.model) {
-      this.model.position.x = 0.5;
+      // Load the splinecode scene file from assets
+      // The scene already contains cursor-following logic
+      await this.splineApp.load('assets/3d/scene.splinecode');
+
+      console.log('✅ Spline 3D scene loaded successfully');
+
+      // Hide the "Get in touch" button from the Spline scene
+      this.hideSplineUIElements();
+
+      // Scene loaded - reveal UI elements
+      this.ngZone.run(() => {
+        this.isLoading = false;
+
+        // Sequence the UI reveals
+        this.timeouts.push(
+          setTimeout(() => { this.brandingVisible = true; }, 400),
+          setTimeout(() => { this.buttonVisible = true; }, 1000)
+        );
+      });
+
+    } catch (e) {
+      console.error('Failed to load Spline scene:', e);
+
+      // Fallback: still show UI even if 3D fails
+      this.ngZone.run(() => {
+        this.isLoading = false;
+        this.brandingVisible = true;
+        this.buttonVisible = true;
+      });
     }
   }
 
-  private animateThreeJS(): void {
-    const loop = () => {
-      if (!this.renderer || !this.scene || !this.camera) return;
+  /**
+   * Hide UI elements embedded in the Spline scene 
+   * (e.g., "Get in touch" button) so we only use our own HTML buttons
+   */
+  private hideSplineUIElements(): void {
+    if (!this.splineApp) return;
 
-      // Subtle float animation
-      if (this.model) {
-        this.model.position.y = Math.sin(Date.now() * 0.001) * 0.08 + 0.2;
+    try {
+      // Try to find and hide the "Get in touch" button from the Spline scene
+      // Spline objects can be accessed by name
+      const possibleNames = [
+        'Get in touch', 'get in touch', 'GetInTouch', 'Button', 'button',
+        'CTA', 'cta', 'Text', 'text-button', 'btn'
+      ];
+
+      for (const name of possibleNames) {
+        try {
+          const obj = this.splineApp.findObjectByName(name);
+          if (obj) {
+            obj.visible = false;
+            console.log(`✅ Hidden Spline object: "${name}"`);
+          }
+        } catch {
+          // Object not found, continue
+        }
       }
 
-      // Smooth Lerp for rotation
-      const lerp = 0.1;
-      this.currentRotationY += (this.targetRotationY - this.currentRotationY) * lerp;
-      this.currentRotationX += (this.targetRotationX - this.currentRotationX) * lerp;
-
-      if (this.headNode) {
-        this.headNode.rotation.y = this.initialHeadRotationY + this.currentRotationY;
-        this.headNode.rotation.x = this.initialHeadRotationX + this.currentRotationX;
+      // Also try to hide all text/button objects that might be in the scene
+      const allObjects = this.splineApp.getAllObjects();
+      if (allObjects) {
+        for (const obj of allObjects) {
+          const nameLower = (obj.name || '').toLowerCase();
+          if (nameLower.includes('button') || 
+              nameLower.includes('get in touch') || 
+              nameLower.includes('cta') ||
+              nameLower.includes('text-btn') ||
+              nameLower.includes('link')) {
+            obj.visible = false;
+            console.log(`✅ Hidden Spline UI object: "${obj.name}"`);
+          }
+        }
       }
-
-      this.renderer.render(this.scene, this.camera);
-      this.animationFrameId = requestAnimationFrame(loop);
-    };
-    loop();
+    } catch (e) {
+      console.warn('Could not hide Spline UI elements:', e);
+    }
   }
 
   @HostListener('window:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
     if (this.isExiting || this.isMobile) return;
 
+    // Update ambient glow position
     this.updateGlowPosition(event.clientX, event.clientY);
 
-    // Normalize mouse to -1..1 range for tracking
-    const nx = (event.clientX / window.innerWidth) * 2 - 1;
-    const ny = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    this.targetRotationY = nx * (Math.PI / 4); // 45 deg max
-    this.targetRotationX = -ny * (Math.PI / 8); // Slightly less vertical
+    // Note: Spline handles cursor tracking internally via its scene events
+    // The robot's head follows the cursor automatically through the Spline runtime
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -299,6 +179,12 @@ export class SplashComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.onEnterClick();
     }
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    // Spline runtime handles canvas resizing automatically
+    this.checkIfMobile();
   }
 
   private updateGlowPosition(x: number, y: number): void {

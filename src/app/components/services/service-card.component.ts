@@ -1,7 +1,8 @@
-import { Component, Input, OnInit, ElementRef, ViewChild, ViewChildren, QueryList } from '@angular/core';
+import { Component, Input, OnInit, ElementRef, ViewChild, ViewChildren, QueryList, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { gsap } from 'gsap';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-service-card',
@@ -14,7 +15,7 @@ import { gsap } from 'gsap';
          (mouseleave)="onLeave()">
       
       <!-- Top Lilac Border Accent -->
-      <div class="absolute top-0 left-0 w-full h-[2px] bg-[#A855F7] opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+      <div class="absolute top-0 start-0 w-full h-[2px] bg-[#A855F7] opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
 
       <!-- Icon Container -->
       <div class="card-icon mb-6" [innerHTML]="safeIcon"></div>
@@ -33,17 +34,11 @@ import { gsap } from 'gsap';
             </span>
           </div>
 
-          <!-- Bottom CTA -->
-          <div class="mt-auto pt-6 flex w-full">
-             <button class="flex items-center gap-2 text-sm text-[#F8FAFC] font-semibold uppercase tracking-wider group/btn">
-                Explore 
-                <span class="transition-transform duration-300 group-hover/btn:translate-x-2">→</span>
-             </button>
-          </div>
+
       </div>
       
       <!-- Premium Centered Hover Glow -->
-      <div class="card-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] bg-[#A855F7]/20 blur-[80px] rounded-full opacity-0 pointer-events-none transition-opacity duration-500 group-hover:opacity-100 z-[-1]"></div>
+      <div class="card-glow absolute top-1/2 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] bg-[#A855F7]/20 blur-[80px] rounded-full opacity-0 pointer-events-none transition-opacity duration-500 group-hover:opacity-100 z-[-1]"></div>
     </div>
   `,
   styles: [`
@@ -120,6 +115,24 @@ import { gsap } from 'gsap';
       text-align: left;
       align-items: flex-start;
     }
+
+    @media (max-width: 768px) {
+      .service-card {
+        padding: 24px 20px;
+      }
+      .card-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+      }
+      .card-title {
+        font-size: 1.15rem;
+        margin-bottom: 8px;
+      }
+      .card-description {
+        font-size: 0.85rem;
+      }
+    }
   `]
 })
 export class ServiceCardComponent implements OnInit {
@@ -128,9 +141,10 @@ export class ServiceCardComponent implements OnInit {
   @Input() icon: string = '';
   @Input() align: 'left' | 'center' = 'left';
   @Input() features: string[] = [];
-
+  public translationService = inject(TranslationService);
+  translations = this.translationService.getTranslations('services');
   @ViewChildren('featurePill') featurePills!: QueryList<ElementRef>;
-
+  
   safeIcon!: SafeHtml;
 
   constructor(private sanitizer: DomSanitizer, private el: ElementRef) {}

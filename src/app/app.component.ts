@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, effect, Renderer2 } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { SplashComponent } from './components/splash/splash.component';
 import { NavComponent } from './components/navigation/nav.component';
 import { HeroComponent } from './components/hero/hero.component';
@@ -9,9 +9,10 @@ import { StrengthsComponent } from './components/strengths/strengths.component';
 import { ServicesComponent } from './components/services/services.component';
 import { ProcessComponent } from './components/process/process.component';
 import { PhilosophyComponent } from './components/philosophy/philosophy.component';
-import { CtaSectionComponent } from './components/cta-section/cta-section.component';
 import { ProjectsComponent } from './components/projects/projects.component';
+import { CtaSectionComponent } from './components/cta-section/cta-section.component';
 import { FooterComponent } from './components/footer/footer.component';
+import { TranslationService } from './services/translation.service';
 
 @Component({
   selector: 'app-root',
@@ -28,7 +29,7 @@ import { FooterComponent } from './components/footer/footer.component';
     ProjectsComponent,
     ProcessComponent, 
     PhilosophyComponent, 
-    CtaSectionComponent, 
+    CtaSectionComponent,
     FooterComponent
   ],
   template: `
@@ -38,23 +39,48 @@ import { FooterComponent } from './components/footer/footer.component';
       <app-nav></app-nav>
       <div class="fade-in-content">
         <app-hero></app-hero>
-        <!-- Prompt 1: Hero Brand Statement -->
+        
         <app-about></app-about>
-        <!-- Prompt 2: Vision & Mission -->
+        
         <app-vision></app-vision>
-        <!-- Prompt 3: Key Strengths Grid -->
-        <app-strengths></app-strengths>
-        <!-- Prompt 4: Services Masonry -->
-        <app-services></app-services>
-        <!-- Projects Showcase -->
-        <app-projects></app-projects>
         
-        <app-process></app-process>
-        <!-- Prompt 5: Team Philosophy -->
-        <app-philosophy></app-philosophy>
+        @defer (on viewport) {
+          <app-strengths></app-strengths>
+        } @placeholder {
+          <div style="height: 600px; background: transparent;"></div>
+        }
+
+        @defer (on viewport) {
+          <app-services></app-services>
+        } @placeholder {
+          <div style="height: 600px; background: transparent;"></div>
+        }
+
+        @defer (on viewport) {
+          <app-projects></app-projects>
+        } @placeholder {
+          <div style="height: 600px; background: transparent;"></div>
+        }
         
-        <app-cta-section></app-cta-section>
-        <app-footer></app-footer>
+        @defer (on viewport) {
+          <app-process></app-process>
+        } @placeholder {
+          <div style="height: 600px; background: transparent;"></div>
+        }
+
+        @defer (on viewport) {
+          <app-philosophy></app-philosophy>
+        } @placeholder {
+          <div style="height: 600px; background: transparent;"></div>
+        }
+
+
+
+        @defer (on viewport) {
+          <app-footer></app-footer>
+        } @placeholder {
+          <div style="height: 300px; background: transparent;"></div>
+        }
       </div>
     </ng-container>
   `,
@@ -71,8 +97,31 @@ import { FooterComponent } from './components/footer/footer.component';
   `]
 })
 export class AppComponent {
+  private translationService = inject(TranslationService);
+  private renderer = inject(Renderer2);
+  private document = inject(DOCUMENT);
+
   showSplash = true;
-  currentYear = new Date().getFullYear();
+
+  constructor() {
+    // Synchronize global document direction and language attributes
+    effect(() => {
+      const dir = this.translationService.currentDir();
+      const lang = this.translationService.currentLang();
+      
+      this.renderer.setAttribute(this.document.documentElement, 'dir', dir);
+      this.renderer.setAttribute(this.document.documentElement, 'lang', lang);
+      
+      // Also apply class to body for easier Tailwind targeting if dir attribute is tricky
+      if (dir === 'rtl') {
+        this.renderer.addClass(this.document.body, 'rtl');
+        this.renderer.setAttribute(this.document.body, 'dir', 'rtl');
+      } else {
+        this.renderer.removeClass(this.document.body, 'rtl');
+        this.renderer.setAttribute(this.document.body, 'dir', 'ltr');
+      }
+    });
+  }
 
   onSplashComplete(): void {
     this.showSplash = false;
